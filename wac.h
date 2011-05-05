@@ -1,3 +1,5 @@
+/* Client-side Williams Analog Clock Daemon RPC call definitions. */
+/* Copyright 2011 Andrew Lorenzen and Antal Spector-Zabusky */
 #ifndef WAC_H
 #define WAC_H
 
@@ -10,4 +12,5 @@ int wac_stop();
 int wac_goto(int time);
 int wac_finish();
 int wac_shutdown();
+
 #endif

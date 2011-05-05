@@ -1,3 +1,5 @@
+/* Implementation of the Williams Analog Clock Daemon (server). */
+/* Copyright 2011 Antal Spector-Zabusky and Andrew Lorenzen */
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>

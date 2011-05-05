@@ -1,3 +1,5 @@
+/* Client-side Williams Analog Clock Daemon RPC calls. */
+/* Copyright 2011 Andrew Lorenzen and Antal Spector-Zabusky */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

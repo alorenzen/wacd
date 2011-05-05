@@ -1,3 +1,5 @@
+/* Williams Analog Clock Daemon constants. */
+/* Copyright 2011 Antal Spector-Zabusky and Andrew Lorenzen */
 #ifndef WACD_H
 #define WACD_H
 
