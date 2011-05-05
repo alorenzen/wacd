@@ -1,4 +1,10 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
 #include <sys/socket.h>
+#include <sys/types.h> 
+#include <netinet/in.h>
+#include "wacd.h"
 
 #define PORT       10010
 #define QUEUE_SIZE 5
@@ -23,18 +29,17 @@ int main(int argc, char *argv[]) {
   listen(server, QUEUE_SIZE);
 
   struct sockaddr_in client_addr;
-  int client = accept(server,
-                      (struct sockaddr*)&server_addr,
-                      sizeof(client_addr));
+  socklen_t client_sz = sizeof(client_addr);
+  int client = accept(server, (struct sockaddr*)&server_addr, &client_sz);
   if (client < 0)
     die("accept");
 
-  int command[2] = {0,0};
-  n = read(client,command,sizeof(command));
+  uint32_t command[2] = {0,0};
+  int n = read(client,command,sizeof(command));
   if (n < 0)
     die("read");
-  command[0] = ntohi(command[0]);
-  command[1] = ntohi(command[1]);
+  command[0] = ntohl(command[0]);
+  command[1] = ntohl(command[1]);
 
   switch (command[0]) {
     case WACD_SET:
