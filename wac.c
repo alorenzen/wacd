@@ -28,7 +28,7 @@ int wac_init(char *hostname) {
   net = socket(AF_INET, SOCK_STREAM, 0);
   if(net < 0) {
     perror("socket");
-    exit(1);
+    return 1;
   }
 
   /* Connect to host on port */
@@ -39,33 +39,88 @@ int wac_init(char *hostname) {
   saddr.sin_port = htons(port);
   if(connect(net,(struct sockaddr *)&saddr,sizeof(saddr)) < 0) {
     perror("connect");
-    exit(1);
+    return 1;
   }
   return 0;
 }
 
-int wac_go() {
+int wac_send(int buffer[2]) {
   int n;
-  int buffer[2];
-  buffer[0] = WACD_GO;
-  buffer[1] = 0;
-  n = write(net,buffer,2);
+  n = write(net,buffer,sizeof(buffer));
   if(n < 0) {
     perror("write");
-    exit(1);
+    return 1;
   }
-  return 0;
+  int return_buffer[1];
+  n = read(net,return_buffer,sizeof(return_buffer));
+  if(n < 0) {
+    perror("read");
+    return 1;
+  }
+  return return_buffer[0];
+}
+
+int wac_set(int secs) {
+  int buffer[2];
+  buffer[0] = htonl(WACD_SET);
+  buffer[1] = htonl(secs);
+  return wac_send(buffer);
+}
+
+int wac_get(void) {
+  int buffer[2];
+  buffer[0] = htonl(WACD_GET);
+  buffer[1] = htonl(0);
+  return wac_send(buffer);
+}
+
+int wac_moment(int msecs) {
+  int buffer[2];
+  buffer[0] = htonl(WACD_MOMENT);
+  buffer[1] = htonl(msecs);
+  return wac_send(buffer);
+}
+
+int wac_go() {
+  int buffer[2];
+  buffer[0] = htonl(WACD_GO);
+  buffer[1] = htonl(0);
+  return wac_send(buffer);
+}
+
+int wac_stop() {
+  int buffer[2];
+  buffer[0] = htonl(WACD_STOP);
+  buffer[1] = htonl(0);
+  return wac_send(buffer);
+}
+
+int wac_goto(int time) {
+  int buffer[2];
+  buffer[0] = htonl(WACD_GOTO);
+  buffer[1] = htonl(time);
+  return wac_send(buffer);
 }
 
 int wac_finish() {
   /* close things down */
-  close(net);
-  return 0;
+  return close(net);
+}
+
+int wac_shutdown() {
+  int buffer[2];
+  buffer[0] = htonl(WACD_SHUTDOWN);
+  buffer[1] = htonl(0);
+  int return_value = wac_send(buffer);
+  wac_finish();
+  return return_value;
 }
 
 int main(int argc, char **argv) {
   char *hostname = (argc>1)?argv[1]:"localhost";
   wac_init(hostname);
+  wac_set(10);
   wac_go();
-  wac_finish();
+  wac_goto(60);
+  wac_shutdown();
 }
