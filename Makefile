@@ -1,10 +1,10 @@
 TARBALL := a6
 TURNIN  := wacd.h wacd.c wac.h wac.c
 
-PROGRAMS := wacd wac
-SOURCES  := wacd.h wacd.c wac.h wac.c
+PROGRAMS := wacd standard silly
+SOURCES  := wacd.c wac.c standard.c silly.c
 
-CPPFLAGS :=
+CPPFLAGS := -D_BSD_SOURCE -DWACD_PRINT
 CFLAGS   :=
 LDFLAGS  :=
 
@@ -13,5 +13,8 @@ include Rules.mk
 wacd: wacd.o
 	$(link_program)
 
-wac: wac.o
+standard: standard.o wac.o
+	$(link_program)
+
+silly: silly.o wac.o
 	$(link_program)

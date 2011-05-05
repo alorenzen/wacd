@@ -92,8 +92,9 @@ int wac_goto(int time) {
 }
 
 int wac_finish() {
-  /* close things down */
-  return close(net);
+  int buffer[2] = { WACD_FINISH, 0 };
+  int response = wac_send(buffer);
+  return close(net) < 0 ? WACD_STATUS_ERR : response;
 }
 
 int wac_shutdown() {

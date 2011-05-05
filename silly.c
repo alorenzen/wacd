@@ -1,6 +1,7 @@
 /*
  * A silly clock.  The second-hand swoops round at last moment
  */
+#include <unistd.h>
 #include <stdio.h>
 #include <time.h>
 #include "wac.h"

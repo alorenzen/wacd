@@ -7,6 +7,16 @@
 #define WACD_GO       0x04
 #define WACD_STOP     0x05
 #define WACD_GOTO     0x06
-#define WACD_SHUTDOWN 0x07
+#define WACD_FINISH   0x07
+#define WACD_SHUTDOWN 0x08
+
+#define WACD_PORT 10010
+
+#define WACD_SECONDS_PER_CLOCK (60*60*12)
+
+#define WACD_MIN_MOMENT 75
+
+#define WACD_STATUS_OK  0
+#define WACD_STATUS_ERR -1
 
 #endif

@@ -13,7 +13,7 @@ void t(int *now)
 
 int main(int argc, char**argv)
 {
-  int now,i;
+  int now;
   wac_init(argc>1?argv[1]:"localhost");
   t(&now);
   wac_set(now);

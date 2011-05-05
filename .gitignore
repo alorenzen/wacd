@@ -1,5 +1,6 @@
 wacd
-wac
+standard
+silly
 dependencies/
 *.o
 *~
