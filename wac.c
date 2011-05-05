@@ -15,7 +15,6 @@ int net;
 int wac_init(char *hostname) {
   struct sockaddr_in saddr; /* an ip(4) socket address */
   struct hostent *server;
-  int port = DEFAULT_PORT;
 
   /* get server address */
   server = gethostbyname(hostname);
@@ -36,7 +35,7 @@ int wac_init(char *hostname) {
   saddr.sin_family = AF_INET;
   /* copy the host address to the socket */
   bcopy(server->h_addr_list[0], &(saddr.sin_addr.s_addr), server->h_length);
-  saddr.sin_port = htons(port);
+  saddr.sin_port = htons(WACD_PORT);
   if(connect(net,(struct sockaddr *)&saddr,sizeof(saddr)) < 0) {
     perror("connect");
     return 1;
@@ -45,6 +44,8 @@ int wac_init(char *hostname) {
 }
 
 int wac_send(int buffer[2]) {
+  buffer[0] = htonl(buffer[0]);
+  buffer[1] = htonl(buffer[1]);
   int n;
   n = write(net,buffer,sizeof(buffer));
   if(n < 0) {
@@ -57,48 +58,36 @@ int wac_send(int buffer[2]) {
     perror("read");
     return 1;
   }
-  return return_buffer[0];
+  return ntohl(return_buffer[0]);
 }
 
 int wac_set(int secs) {
-  int buffer[2];
-  buffer[0] = htonl(WACD_SET);
-  buffer[1] = htonl(secs);
+  int buffer[2] = { WACD_SET, secs };
   return wac_send(buffer);
 }
 
 int wac_get(void) {
-  int buffer[2];
-  buffer[0] = htonl(WACD_GET);
-  buffer[1] = htonl(0);
+  int buffer[2] = { WACD_GET, 0 };
   return wac_send(buffer);
 }
 
 int wac_moment(int msecs) {
-  int buffer[2];
-  buffer[0] = htonl(WACD_MOMENT);
-  buffer[1] = htonl(msecs);
+  int buffer[2] = { WACD_MOMENT, msecs };
   return wac_send(buffer);
 }
 
 int wac_go() {
-  int buffer[2];
-  buffer[0] = htonl(WACD_GO);
-  buffer[1] = htonl(0);
+  int buffer[2] = { WACD_GO, 0 };
   return wac_send(buffer);
 }
 
 int wac_stop() {
-  int buffer[2];
-  buffer[0] = htonl(WACD_STOP);
-  buffer[1] = htonl(0);
+  int buffer[2] = { WACD_STOP, 0 };
   return wac_send(buffer);
 }
 
 int wac_goto(int time) {
-  int buffer[2];
-  buffer[0] = htonl(WACD_GOTO);
-  buffer[1] = htonl(time);
+  int buffer[2] = { WACD_GOTO, time };
   return wac_send(buffer);
 }
 
@@ -108,19 +97,8 @@ int wac_finish() {
 }
 
 int wac_shutdown() {
-  int buffer[2];
-  buffer[0] = htonl(WACD_SHUTDOWN);
-  buffer[1] = htonl(0);
+  int buffer[2] = { WACD_SHUTDOWN, 0 };
   int return_value = wac_send(buffer);
   wac_finish();
   return return_value;
-}
-
-int main(int argc, char **argv) {
-  char *hostname = (argc>1)?argv[1]:"localhost";
-  wac_init(hostname);
-  wac_set(10);
-  wac_go();
-  wac_goto(60);
-  wac_shutdown();
 }
