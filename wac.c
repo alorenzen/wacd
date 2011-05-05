@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <strings.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -8,14 +9,12 @@
 #include <netdb.h>
 
 #include "wac.h"
-
+#include "wacd.h"
 int net;
 
 int wac_init(char *hostname) {
-  int n;
   struct sockaddr_in saddr; /* an ip(4) socket address */
   struct hostent *server;
-  char buffer[2];
   int port = DEFAULT_PORT;
 
   /* get server address */
@@ -36,7 +35,7 @@ int wac_init(char *hostname) {
   memset(&saddr,0,sizeof(saddr));
   saddr.sin_family = AF_INET;
   /* copy the host address to the socket */
-  bcopy(server->h_addr, &(saddr.sin_addr.s_addr), server->h_length);
+  bcopy(server->h_addr_list[0], &(saddr.sin_addr.s_addr), server->h_length);
   saddr.sin_port = htons(port);
   if(connect(net,(struct sockaddr *)&saddr,sizeof(saddr)) < 0) {
     perror("connect");
@@ -46,6 +45,7 @@ int wac_init(char *hostname) {
 }
 
 int wac_go() {
+  int n;
   int buffer[2];
   buffer[0] = WACD_GO;
   buffer[1] = 0;
@@ -54,6 +54,7 @@ int wac_go() {
     perror("write");
     exit(1);
   }
+  return 0;
 }
 
 int wac_finish() {
