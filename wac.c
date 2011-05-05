@@ -46,8 +46,7 @@ int wac_init(char *hostname) {
 int wac_send(int buffer[2]) {
   buffer[0] = htonl(buffer[0]);
   buffer[1] = htonl(buffer[1]);
-  int n;
-  n = write(net,buffer,sizeof(buffer));
+  int n = write(net,buffer,sizeof(buffer));
   if(n < 0) {
     perror("write");
     return 1;

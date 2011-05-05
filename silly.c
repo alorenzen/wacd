@@ -22,7 +22,7 @@ int main(int argc, char**argv)
   wac_moment(100);
   for (i = 0; i < 10; i++) {
     sleep(54);
-    t(&now);
+    now = (now + 60) % (12*60*60);
     wac_goto(now);
   }
   wac_finish();

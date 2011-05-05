@@ -9,7 +9,20 @@
 #include <netinet/in.h>
 #include "wacd.h"
 
+/* You can define any combination of the following three constants:
+ *   - WACD_PRINT:    Prints the time at every clock tick.
+ *   - WACD_PHYSICAL: Writes to the parallel port (requires root).
+ *   - WACD_LOG:      Logs incoming messages and (if enabled) writes to the
+ *                    parallel port.
+ */
+
 #define QUEUE_SIZE 5
+
+#ifdef WACD_LOG
+#define logf(...) printf(__VA_ARGS__)
+#else
+#define logf(...)
+#endif
 
 struct {
   int  time;
@@ -17,28 +30,76 @@ struct {
   bool going;
 } clock = { .time = 0, .moment = WACD_MIN_MOMENT, .going = false };
 
+#ifdef WACD_PRINT
+static inline void clock_print() {
+  printf("%dh%02dm%02d [%d]\n",
+         clock.time/(60*60),
+         (clock.time/60) % 60,
+         clock.time % 60,
+         clock.time);
+}
+#else
+static inline void clock_print() { }
+#endif
+
+#ifdef WACD_PHYSICAL
+int port_file = -1;
+
+static inline void clock_finish() {
+  static uint8_t ticktock = 0;
+  ++ticktock;
+  logf("[ticktock = %d]\n", ticktock);
+  lseek(port_file, WACD_PHYSICAL_PORT, SEEK_SET);
+  write(port_file, &ticktock, sizeof(ticktock));
+  ticktock %= 2;
+  usleep(WACD_MIN_MOMENT*1000);
+  logf("[rest]\n");
+  int rest = 3;
+  lseek(port_file, WACD_PHYSICAL_PORT, SEEK_SET);
+  write(port_file, &rest, sizeof(rest));
+  usleep((clock.moment - WACD_MIN_MOMENT)*1000);
+}
+
+static inline void port_setup() {
+  if (setuid(0) < 0) {
+    perror("Couldn't setuid to root");
+    exit(EXIT_FAILURE);
+  }
+  port_file = open("/dev/port", O_WRONLY);
+  if (port_file < 0) {
+    perror("Couldn't access port file");
+    exit(EXIT_FAILURE);
+  }
+}
+
+static inline void port_cleanup() {
+  close(port_file);
+}
+#else
+static inline void clock_finish() {
+  usleep(clock.moment*1000);
+}
+
+static inline void port_setup() { }
+static inline void port_cleanup() { }
+#endif
+
 static inline void clock_tick() {
   if (clock.going) {
-    // 60 sec/min * 60 min/hr * 12 hr/clock
     clock.time = (clock.time + 1) % WACD_SECONDS_PER_CLOCK;
-    #ifdef WACD_PRINT
-    printf("%dh%02dm%02d [%d]\n",
-           clock.time/(60*60),
-           (clock.time/60) % 60,
-           clock.time % 60,
-           clock.time);
-    #endif
-    #ifdef WACD_PHYSICAL
-    /* :TODO: Unimplemented */
-    #endif
+    clock_print();
+    clock_finish();
+  } else {
+    usleep(clock.moment*1000);
   }
-  usleep(clock.moment*1000);
 }
 
 int main(int argc, char *argv[]) {
   int client = -1;
   int server = -1;
   int exit_status = EXIT_SUCCESS;
+  
+  port_setup();
   
   server = socket(AF_INET, SOCK_STREAM, 0);
   if (server < 0) {
@@ -81,7 +142,7 @@ int main(int argc, char *argv[]) {
       int n = read(client,command,sizeof(command));
       if (n < 0 && errno != EWOULDBLOCK) {
         perror("Couldn't read from client");
-      } else if (errno != EWOULDBLOCK) {
+      } else if (n > 0) {
         command[0] = ntohl(command[0]);
         command[1] = ntohl(command[1]);
 
@@ -91,7 +152,7 @@ int main(int argc, char *argv[]) {
         } while(0)
         switch (command[0]) {
           case WACD_SET:
-            printf("SET      %d\n", command[1]);
+            logf("SET      %d\n", command[1]);
             if (command[1] >= 0 && command[1] < WACD_SECONDS_PER_CLOCK) {
               clock.time = command[1];
               REPLY(WACD_STATUS_OK);
@@ -100,11 +161,11 @@ int main(int argc, char *argv[]) {
             }
             break;
           case WACD_GET:
-            printf("GET      %d\n", command[1]);
+            logf("GET      %d\n", command[1]);
             REPLY(clock.time);
             break;
           case WACD_MOMENT:
-            printf("MOMENT   %d\n", command[1]);
+            logf("MOMENT   %d\n", command[1]);
             if (command[1] >= WACD_MIN_MOMENT) {
               // The maximum moment is the client's responsibility; they can
               // wait for as long as they want between commands.
@@ -115,19 +176,19 @@ int main(int argc, char *argv[]) {
             }
             break;
           case WACD_GO:
-            printf("GO       %d\n", command[1]);
+            logf("GO       %d\n", command[1]);
             clock.going = true;
             REPLY(WACD_STATUS_OK);
             break;
           case WACD_STOP:
-            printf("STOP     %d\n", command[1]);
+            logf("STOP     %d\n", command[1]);
             clock.going = false;
             REPLY(WACD_STATUS_OK);
             break;
           case WACD_GOTO:
-            printf("GOTO     %d\n", command[1]);
+            logf("GOTO     %d\n", command[1]);
             int distance = command[1] - clock.time;
-            if (distance >=0 && distance < 60*60) {
+            if (distance >= 0 && distance < 60*60) {
               clock.going = true;
               while (clock.time < command[1])
                 clock_tick();
@@ -138,13 +199,13 @@ int main(int argc, char *argv[]) {
             }
             break;
           case WACD_FINISH:
-            printf("FINISH   %d\n", command[1]);
+            logf("FINISH   %d\n", command[1]);
             close(client);
             client = -1;
             // Doesn't reply
             break;
           case WACD_SHUTDOWN:
-            printf("SHUTDOWN %d\n", command[1]);
+            logf("SHUTDOWN %d\n", command[1]);
             exit_status = EXIT_SUCCESS;
             // Doesn't reply
             goto exit;
@@ -160,8 +221,8 @@ int main(int argc, char *argv[]) {
   }
   
   exit:
+  port_cleanup();
   if (client < 0) close(client);
   if (server < 0) close(server);
-  perror("");
   return exit_status;
 }

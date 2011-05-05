@@ -4,7 +4,7 @@ TURNIN  := wacd.h wacd.c wac.h wac.c
 PROGRAMS := wacd standard silly
 SOURCES  := wacd.c wac.c standard.c silly.c
 
-CPPFLAGS := -D_BSD_SOURCE -DWACD_PRINT
+CPPFLAGS := -D_BSD_SOURCE -DWACD_PHYSICAL
 CFLAGS   :=
 LDFLAGS  :=
 

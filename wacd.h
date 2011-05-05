@@ -19,4 +19,6 @@
 #define WACD_STATUS_OK  0
 #define WACD_STATUS_ERR -1
 
+#define WACD_PHYSICAL_PORT 888
+
 #endif
